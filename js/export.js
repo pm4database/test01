@@ -546,10 +546,12 @@
       api.batchUpdateCertStatus(results)
         .then(function(updateResult) {
           showExportResult(results.length, elapsed, config.folderUrl, null, errors);
+          if (typeof updateBadgeCount === 'function') updateBadgeCount(); // ✅ refresh badge
         })
         .catch(function(err) {
           console.error('Batch update failed:', err);
           showExportResult(results.length, elapsed, config.folderUrl, null, errors);
+          if (typeof updateBadgeCount === 'function') updateBadgeCount(); // ✅ refresh badge
         });
     } else {
       showExportResult(0, elapsed, null, null, errors);
