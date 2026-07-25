@@ -1244,34 +1244,38 @@ function autoSaveTemplate() {
 
 
 /**
- * โหลดรูปภาพจาก Drive ผ่าน Public URL (เร็วกว่า base64, รองรับไฟล์ใหญ่)
+ * โหลดรูปภาพจาก Drive — Hybrid Strategy:
+ *   1. ลอง lh3.googleusercontent.com (Google CDN — เร็วที่สุด, CORS OK)
+ *   2. Fallback → GAS Proxy getImageBase64 (ช้ากว่าแต่เสถียร 100%)
  */
 function loadImageFromDrive(fileId, callback) {
-  api.getImagePublicUrl(fileId)
-    .then(function(result) {
-      if (result && result.status && result.url) {
-        var img = new Image();
-        img.crossOrigin = 'anonymous';
-        img.onload = function() { callback(img); };
-        img.onerror = function() {
-          // Fallback: ใช้ base64 ถ้า URL โหลดไม่ได้
-          api.getImageBase64(fileId)
-            .then(function(b64Result) {
-              if (b64Result && b64Result.status) {
-                var img2 = new Image();
-                img2.onload = function() { callback(img2); };
-                img2.onerror = function() { callback(null); };
-                img2.src = b64Result.base64;
-              } else {
-                callback(null);
-              }
-            });
-        };
-        img.src = result.url;
-      } else {
-        callback(null);
-      }
-    });
+  if (!fileId) { callback(null); return; }
+
+  // ── Strategy 1: lh3 CDN (เร็ว, cache ได้) ──
+  var img = new Image();
+  img.crossOrigin = 'anonymous';
+
+  img.onload = function() { callback(img); };
+
+  img.onerror = function() {
+    // ── Strategy 2: GAS Proxy fallback ──
+    console.warn('lh3 CDN failed for', fileId, '→ fallback to GAS proxy');
+    api.getImageBase64(fileId)
+      .then(function(result) {
+        if (result && result.status && (result.dataUrl || result.base64)) {
+          var img2 = new Image();
+          img2.onload = function() { callback(img2); };
+          img2.onerror = function() { callback(null); };
+          img2.src = result.dataUrl || ('data:image/png;base64,' + result.base64);
+        } else {
+          callback(null);
+        }
+      })
+      .catch(function() { callback(null); });
+  };
+
+  // lh3 CDN URL — รองรับ resize ด้วย =s{width}
+  img.src = 'https://lh3.googleusercontent.com/d/' + fileId;
 }
 
 // requestAnimationFrame wrapper ลด render ซ้ำซ้อน
