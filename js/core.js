@@ -296,7 +296,16 @@ function selectTemplateFromGate(templateId) {
       if (result.config && !Canvas.isCreatingNew) {
         var config = result.config;
 
-        // ✅ สลับไป Designer ก่อน → เพื่อให้ Canvas.el init ก่อนโหลดภาพ
+        // ✅ ตั้งค่า ID ก่อน switchTab → เพื่อให้ guard ใน initCanvasIfNeeded ทำงาน
+        Canvas.currentTemplateId = config.template_id;
+        Canvas.currentTemplateName = config.template_name;
+        Canvas.currentTemplatePrefix = config.number_prefix || '';
+        AppState.activeTemplateId = config.template_id;
+        AppState.activeTemplateName = config.template_name;
+        AppState.templateSelected = true;   // ✅ ปลดล็อค ก่อน switchTab
+        unlockNavigation();                 // ✅ ปลดล็อค nav ก่อน switchTab
+
+        // ✅ สลับไป Designer → Canvas.el init (guard จะข้าม loadActiveTemplate เพราะ currentTemplateId มีแล้ว)
         switchTab('designer');
         if (typeof initCanvasIfNeeded === 'function') initCanvasIfNeeded();
 
@@ -316,10 +325,7 @@ function selectTemplateFromGate(templateId) {
         var previewCounter = document.getElementById('previewCounter');
         if (previewCounter) previewCounter.textContent = '0/0';
 
-        // ── ตั้งค่า State ใหม่ ──
-        Canvas.currentTemplateId = config.template_id;
-        Canvas.currentTemplateName = config.template_name;
-        Canvas.currentTemplatePrefix = config.number_prefix || '';
+        // ── ตั้งค่า State ที่เหลือ ──
         Canvas.width = config.canvas_width || 3508;
         Canvas.height = config.canvas_height || 2480;
         Canvas.elements = config.elements || [];
@@ -358,9 +364,7 @@ function selectTemplateFromGate(templateId) {
           if (typeof updateElementList === 'function') updateElementList();
         }
 
-        // อัปเดต AppState
-        AppState.activeTemplateId = config.template_id;
-        AppState.activeTemplateName = config.template_name;
+        // (AppState.activeTemplateId ตั้งค่าแล้วด้านบนก่อน switchTab)
       }
 
       // ── 2. อัปเดต Dashboard Stats ──
@@ -403,9 +407,7 @@ function selectTemplateFromGate(templateId) {
       }
       loadTemplateSelectorDropdown();
 
-      // ── 5. ปลดล็อค Navigation + แสดง Context Bar ──
-      AppState.templateSelected = true;
-      unlockNavigation();
+      // ── 5. อัปเดต Context Bar (templateSelected + unlockNavigation ตั้งแล้วด้านบน) ──
       updateContextBar();
 
       api.getRecentActivity()
