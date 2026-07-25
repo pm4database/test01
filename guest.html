@@ -408,7 +408,7 @@
 
     _guestSupabase.rpc('guest_search_certificates', {
       p_search_name: name,
-      p_template_id: tplId || null
+      p_template_id: (tplId && tplId !== 'all') ? tplId : null  // ✅ 'all' → null
     })
     .then(function(response) {
       btn.disabled = false;
