@@ -606,6 +606,20 @@ function renderActivityList(activities) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════
+// BADGE COUNT — อัปเดต Badge จำนวนรายชื่อใน sidebar
+// ═══════════════════════════════════════════════════════════════════════
+
+function updateBadgeCount() {
+  api.getStats().then(function(result) {
+    if (result && result.status && result.stats) {
+      var badge = document.getElementById('navBadgeTotal');
+      if (badge) badge.textContent = result.stats.total || 0;
+      AppState.activeTemplateRecordCount = result.stats.total || 0;
+    }
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════════
 // DATA TABLE
 // ═══════════════════════════════════════════════════════════════════════
 
@@ -971,6 +985,7 @@ function deleteRow(rowIndex) {
         if (result && result.status) {
           showToast(result.message, 'success');
           loadData();
+          updateBadgeCount();
         } else {
           showToast(result ? result.message : 'เกิดข้อผิดพลาด', 'error');
         }
@@ -1026,6 +1041,7 @@ function bulkDelete() {
           AppState.selectedRows = [];
           updateBulkActions();
           loadData();
+          updateBadgeCount();
         } else {
           showToast(result ? result.message : 'เกิดข้อผิดพลาด', 'error');
         }
@@ -1105,6 +1121,7 @@ function saveRecord() {
           showToast(result.message, 'success');
           loadData();
           loadDashboard();
+          updateBadgeCount();
         } else {
           showToast(result ? result.message : 'เกิดข้อผิดพลาด', 'error');
         }
@@ -1374,6 +1391,7 @@ function confirmImport() {
           hideImportSection();
           loadData();
           loadDashboard();
+          updateBadgeCount();
         } else {
           showToast(result ? result.message : 'เกิดข้อผิดพลาด', 'error');
         }

@@ -284,18 +284,18 @@
   // ═══════════════════════════════════════════════════════════════════════
 
   function startDirectDriveExport(records) {
-    updateExportProgress(0, records.length, '⚡ กำลังเตรียม Direct Upload...');
+    updateExportProgress(0, records.length, '⚡ กำลังเตรียม Upload...');
 
     api.getUploadConfig(Canvas.currentTemplateName || AppState.activeTemplateName || '')
-      .then(function(config) {
-        if (!config || !config.status) {
-          showToast(config ? config.message : 'ไม่สามารถเตรียม Upload ได้', 'error');
+      .then(function(result) {
+        if (!result || !result.status) {
+          showToast(result ? result.message : 'ไม่สามารถเตรียม Upload ได้', 'error');
           resetExportUI();
           return;
         }
 
-        ExportState.uploadConfig = config;
-        processDirectExport(records, config);
+        ExportState.uploadConfig = result.config || result;
+        processDirectExport(records, result.config || result);
       })
       .catch(function(err) {
         showToast('เตรียม Upload ไม่สำเร็จ: ' + err.message, 'error');
@@ -311,11 +311,12 @@
     var isPdf = imageFormat === 'pdf';
     var mimeType = isPdf ? 'application/pdf' : (imageFormat === 'png' ? 'image/png' : 'image/jpeg');
     var ext = isPdf ? '.pdf' : (imageFormat === 'png' ? '.png' : '.jpg');
+    var templateName = Canvas.currentTemplateName || AppState.activeTemplateName || '';
 
     var index = 0;
     var results = [];
     var errors = [];
-    var completedCount = 0;  // ✅ นับจำนวนที่เสร็จ (แทน activeWorkers)
+    var completedCount = 0;
 
     function updateUI() {
       var done = results.length + errors.length;
@@ -332,51 +333,68 @@
 
     function worker() {
       if (ExportState.isCancelled || index >= records.length) {
-        return;  // ✅ แค่ return ไม่ต้องนับ
+        return;
       }
 
       var i = index++;
       var record = records[i];
 
-      // Render canvas → Blob (Image or PDF)
+      // Render canvas → base64
       var canvas = renderForExportCanvas(record, scale);
+      var filename = generateFilename(filenamePattern, record) + ext;
 
-      var blobPromise;
+      var base64Promise;
       if (isPdf) {
-        blobPromise = Promise.resolve(canvasToPdfBlob(canvas));
+        var pdfBlob = canvasToPdfBlob(canvas);
+        base64Promise = new Promise(function(resolve, reject) {
+          var reader = new FileReader();
+          reader.onload = function() { resolve(reader.result.split(',')[1]); };
+          reader.onerror = function() { reject(new Error('PDF read error')); };
+          reader.readAsDataURL(pdfBlob);
+        });
       } else {
-        blobPromise = canvasToBlob(canvas, mimeType, jpegQuality);
+        base64Promise = new Promise(function(resolve, reject) {
+          canvas.toBlob(function(blob) {
+            if (!blob) { reject(new Error('Canvas toBlob returned null')); return; }
+            var reader = new FileReader();
+            reader.onload = function() { resolve(reader.result.split(',')[1]); };
+            reader.onerror = function() { reject(new Error('Blob read error')); };
+            reader.readAsDataURL(blob);
+          }, mimeType, jpegQuality);
+        });
       }
 
-      blobPromise.then(function (blob) {
-        var filename = generateFilename(filenamePattern, record) + ext;
-
-        // Upload ตรงไป Drive
-        return uploadToDriveAPI(blob, filename, config.folderId, config.accessToken, mimeType);
-      }).then(function (driveFile) {
-        results.push({
-          rowIndex: record.rowIndex,
-          fileId: driveFile.id,
-          name: record.name,
-          filename: driveFile.name
-        });
+      base64Promise.then(function(base64Data) {
+        // ✅ Upload ผ่าน GAS proxy (DriveAPI.gs) แทน googleapis.com ตรง
+        return api.saveCertificateImage(base64Data, filename, record.rowIndex, templateName);
+      }).then(function(result) {
+        if (result && result.status) {
+          results.push({
+            rowIndex: record.rowIndex,
+            fileId: result.fileId || '',
+            name: record.name,
+            filename: filename
+          });
+        } else {
+          errors.push({ rowIndex: record.rowIndex, name: record.name, error: result ? result.message : 'Upload failed' });
+        }
         ExportState.processedRecords++;
-        completedCount++;  // ✅ นับเมื่อเสร็จ
+        completedCount++;
         updateUI();
-        checkDone();       // ✅ ตรวจว่าครบหรือยัง
-        worker();          // หยิบ item ถัดไป
-      }).catch(function (err) {
+        checkDone();
+        worker();
+      }).catch(function(err) {
         console.error('Export error for', record.name, ':', err);
         errors.push({ rowIndex: record.rowIndex, name: record.name, error: err.message || String(err) });
         ExportState.processedRecords++;
-        completedCount++;  // ✅ นับ error ด้วย
+        completedCount++;
         updateUI();
         checkDone();
         worker();
       });
     }
 
-    // Start parallel workers
+    // Start parallel workers (GAS supports concurrent requests)
     var workerCount = Math.min(CONCURRENCY, records.length);
     for (var w = 0; w < workerCount; w++) {
       worker();
