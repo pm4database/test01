@@ -111,8 +111,8 @@ function initCanvasIfNeeded() {
     autoSaveTemplate();
   }, 30000);
 
-  // ✅ โหลด active template เฉพาะถ้าไม่ได้กำลังสร้างใหม่
-  if (!Canvas.isCreatingNew) {
+  // ✅ โหลด active template เฉพาะถ้าไม่ได้กำลังสร้างใหม่ และยังไม่มี template ที่เลือกอยู่
+  if (!Canvas.isCreatingNew && !Canvas.currentTemplateId) {
     loadActiveTemplate();
   }
 

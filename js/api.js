@@ -216,10 +216,15 @@ var api = {
 
       return {
         status: true,
-        records: records,
+        data: records,           // core.js ใช้ result.data
+        records: records,        // backward compatible
+        total: totalRecords,     // core.js ใช้ result.total
         totalRecords: totalRecords,
         totalPages: totalPages,
-        currentPage: page
+        page: page,              // core.js ใช้ result.page
+        currentPage: page,
+        perPage: perPage,
+        schools: []
       };
     });
   },

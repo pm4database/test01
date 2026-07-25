@@ -374,7 +374,7 @@ function selectTemplateFromGate(templateId) {
         if (d.schools && d.schools.length > 0) {
           updateSchoolFilter(d.schools);
         }
-        if (d.data.length > 0) {
+        if (d.data && d.data.length > 0) {
           var skeleton = document.getElementById('tableSkeleton');
           var emptyState = document.getElementById('emptyState');
           if (skeleton) skeleton.classList.add('hidden');
@@ -643,17 +643,18 @@ function loadData() {
         updateSchoolFilter(result.schools);
       }
 
-      if (result.data.length === 0) {
+      var records = result.data || result.records || [];
+      if (records.length === 0) {
         emptyState.classList.remove('hidden');
         document.getElementById('paginationInfo').textContent = 'ไม่พบข้อมูล';
         document.getElementById('paginationControls').innerHTML = '';
         return;
       }
 
-      renderDataTable(result.data, result.page, result.perPage || AppState.perPage);
-      renderPagination(result.total, result.page, result.totalPages);
+      renderDataTable(records, result.page || result.currentPage || 1, result.perPage || AppState.perPage);
+      renderPagination(result.total || result.totalRecords || 0, result.page || 1, result.totalPages || 1);
 
-      AppState.totalPages = result.totalPages;
+      AppState.totalPages = result.totalPages || 1;
     })
     .catch(function(err) {
       skeleton.classList.add('hidden');
