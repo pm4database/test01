@@ -417,9 +417,9 @@ var api = {
 
     var updates = results.map(function(r) {
       var updateData = { status: r.status || 'exported' };
+      // ✅ records table มีแค่ drive_file_url (ไม่มี drive_file_id!)
       if (r.driveUrl) updateData.drive_file_url = r.driveUrl;
       if (r.driveFileUrl) updateData.drive_file_url = r.driveFileUrl;
-      if (r.fileId) updateData.drive_file_id = r.fileId;
 
       if (r.id) {
         return _getSupabase().from('records').update(updateData).eq('id', r.id);
@@ -736,6 +736,10 @@ var api = {
 
   getImageBase64: function(fileId) {
     return api._callGAS('getImageBase64', { fileId: fileId });
+  },
+
+  getDriveFolderUrl: function(folderType) {
+    return api._callGAS('getDriveFolderUrl', { folderType: folderType || 'generated' });
   },
 
   getImagePublicUrl: function(fileId) {

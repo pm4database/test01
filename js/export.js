@@ -373,6 +373,7 @@
             id: record.id,             // ✅ ต้องมี id เพื่อ update status ใน DB
             rowIndex: record.rowIndex,
             fileId: result.fileId || '',
+            driveUrl: result.driveUrl || '',      // ✅ GAS returns driveUrl
             driveFileUrl: result.url || '',
             status: 'exported',
             name: record.name,
@@ -851,17 +852,17 @@
   // ═══════════════════════════════════════════════════════════════════════
 
   function openDriveFolder() {
-    api.getSettings()
+    // ✅ ดึง folder URL จาก GAS (Script Properties) แทน Supabase settings
+    api.getDriveFolderUrl('generated')
       .then(function(result) {
-        if (result && result.status && result.settings) {
-          // ✅ key ที่ถูกต้องคือ drive_export_folder, value เป็น string ตรง (ไม่ใช่ .value)
-          var folderId = result.settings.drive_export_folder || '';
-          if (folderId) {
-            window.open('https://drive.google.com/drive/folders/' + folderId, '_blank');
-          } else {
-            showToast('ไม่พบ Folder ID — กรุณาตั้งค่า Drive Folder ก่อน', 'warning');
-          }
+        if (result && result.status && result.folderUrl) {
+          window.open(result.folderUrl, '_blank');
+        } else {
+          showToast(result ? result.message : 'ไม่สามารถดึง Folder URL ได้', 'warning');
         }
+      })
+      .catch(function(err) {
+        showToast('เกิดข้อผิดพลาด: ' + err.message, 'error');
       });
   }
 

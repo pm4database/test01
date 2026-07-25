@@ -618,8 +618,10 @@ function updateBadgeCount() {
   api.getStats().then(function(result) {
     if (result && result.status && result.stats) {
       var badge = document.getElementById('navBadgeTotal');
-      if (badge) badge.textContent = result.stats.total || 0;
-      AppState.activeTemplateRecordCount = result.stats.total || 0;
+      // ✅ getStats returns totalRecords (ไม่ใช่ total)
+      var count = result.stats.totalRecords || result.stats.total || 0;
+      if (badge) badge.textContent = count;
+      AppState.activeTemplateRecordCount = count;
     }
   });
 }
