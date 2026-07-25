@@ -126,14 +126,8 @@ function onLoginSuccess(userData) {
   api.getTemplateListWithCounts()
     .then(function(result) {
       if (result && result.status && result.templates && result.templates.length > 0) {
-        // มี Template อยู่
-        if (result.templates.length === 1) {
-          // Auto-select ถ้ามี 1 Template เดียว
-          selectTemplateFromGate(result.templates[0].template_id);
-        } else {
-          // ✅ หลาย Template → แสดง Gate Modal เสมอ (ให้ผู้ใช้เลือก)
-          showTemplateGateModal();
-        }
+        // ✅ แสดง Gate Modal ทุกครั้งที่ login (ให้ผู้ใช้เลือกเสมอ)
+        showTemplateGateModal();
       } else {
         // ไม่มี Template เลย → แสดง Gate (empty state)
         showTemplateGateModal();
@@ -257,7 +251,7 @@ function showTemplateGateModal() {
         if (isActive) html += '<span class="gate-card-active-badge">ใช้อยู่</span>';
         // Thumbnail Preview
         if (t.drive_file_id) {
-          html += '<div class="gate-card-preview"><img src="https://drive.google.com/thumbnail?id=' + t.drive_file_id + '&sz=w200" onerror="this.outerHTML=\'🏆\'"></div>';
+          html += '<div class="gate-card-preview"><img src="https://lh3.googleusercontent.com/d/' + t.drive_file_id + '=s200" onerror="this.outerHTML=\'🏆\'"></div>';
         } else {
           html += '<div class="gate-card-icon">🏆</div>';
         }

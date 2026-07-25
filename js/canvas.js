@@ -155,9 +155,20 @@ function loadAllElementImages() {
 }
 
 function loadCanvasFonts() {
-  // Fonts โหลดแล้วใน index.html (ไม่ต้องโหลดซ้ำ)
-  if (document.fonts && document.fonts.ready) {
-    document.fonts.ready.then(function() {
+  // Preload ทุก font ทันที (แก้ lazy loading ที่ทำให้ต้องสลับ font ไปมา)
+  var fonts = ['Sarabun','Kanit','Prompt','Noto Sans Thai','Noto Serif Thai',
+               'Mitr','Mali','Charm','Chakra Petch','Chonburi','Kodchasan'];
+
+  if (document.fonts && document.fonts.load) {
+    var promises = [];
+    fonts.forEach(function(f) {
+      promises.push(document.fonts.load('400 48px "' + f + '"', 'ทดสอบฟอนต์ไทย Test'));
+      promises.push(document.fonts.load('700 48px "' + f + '"', 'ทดสอบฟอนต์ไทย Test'));
+    });
+    Promise.all(promises).then(function() {
+      Canvas.fontsLoaded = true;
+      renderCanvas();
+    }).catch(function() {
       Canvas.fontsLoaded = true;
       renderCanvas();
     });
@@ -1075,7 +1086,7 @@ function createNewTemplate() {
   // ✅ ตั้ง flag ก่อนทุกอย่าง (ป้องกัน initCanvasIfNeeded โหลด Template เดิม)
   Canvas.isCreatingNew = true;
 
-  // ✅ ล้าง Canvas state ก่อน switchTab (ป้องกัน race condition)
+  // ✅ ล้าง Canvas state + AppState ก่อน switchTab (ป้องกัน race condition)
   Canvas.currentTemplateId = '';
   Canvas.currentTemplateName = '';
   Canvas.currentTemplatePrefix = '';
@@ -1084,6 +1095,12 @@ function createNewTemplate() {
   Canvas.elements = [];
   Canvas.width = 3508;
   Canvas.height = 2480;
+
+  // ✅ Clear AppState ด้วย (ป้องกัน api.js fallback ไปใช้ activeTemplateId เก่า)
+  if (typeof AppState !== 'undefined') {
+    AppState.activeTemplateId = '';
+    AppState.activeTemplateName = '';
+  }
 
   // สลับไปแท็บ Designer (เพื่อ init Canvas.el ถ้ายังไม่มี)
   switchTab('designer');
@@ -1146,8 +1163,8 @@ function confirmSaveTemplate() {
   Canvas.el.height = h;
   closeModal('saveTemplateModal');
 
-  // ✅ ถ้ากำลังสร้างใหม่ → ส่ง '' เสมอ (ป้องกัน race condition ที่ ID ถูกตั้งกลับ)
-  var templateId = Canvas.isCreatingNew ? '' : (Canvas.currentTemplateId || '');
+  // ✅ ถ้ากำลังสร้างใหม่ → ส่ง 'new' (ไม่ใช้ '' เพราะ falsy จะ fallback ไป AppState.activeTemplateId)
+  var templateId = Canvas.isCreatingNew ? 'new' : (Canvas.currentTemplateId || '');
   doSaveTemplate(templateId, name, w, h, prefix);
 }
 
