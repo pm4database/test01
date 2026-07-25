@@ -370,8 +370,11 @@
       }).then(function(result) {
         if (result && result.status) {
           results.push({
+            id: record.id,             // ✅ ต้องมี id เพื่อ update status ใน DB
             rowIndex: record.rowIndex,
             fileId: result.fileId || '',
+            driveFileUrl: result.url || '',
+            status: 'exported',
             name: record.name,
             filename: filename
           });
@@ -851,11 +854,12 @@
     api.getSettings()
       .then(function(result) {
         if (result && result.status && result.settings) {
-          var folderId = result.settings.drive_generated_folder ? result.settings.drive_generated_folder.value : '';
+          // ✅ key ที่ถูกต้องคือ drive_export_folder, value เป็น string ตรง (ไม่ใช่ .value)
+          var folderId = result.settings.drive_export_folder || '';
           if (folderId) {
             window.open('https://drive.google.com/drive/folders/' + folderId, '_blank');
           } else {
-            showToast('ไม่พบ Folder ID', 'warning');
+            showToast('ไม่พบ Folder ID — กรุณาตั้งค่า Drive Folder ก่อน', 'warning');
           }
         }
       });

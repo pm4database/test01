@@ -419,10 +419,13 @@ var api = {
       var updateData = { status: r.status || 'exported' };
       if (r.driveUrl) updateData.drive_file_url = r.driveUrl;
       if (r.driveFileUrl) updateData.drive_file_url = r.driveFileUrl;
+      if (r.fileId) updateData.drive_file_id = r.fileId;
 
       if (r.id) {
         return _getSupabase().from('records').update(updateData).eq('id', r.id);
       }
+      // fallback: ไม่ควรเกิด แต่ป้องกันไว้
+      console.warn('batchUpdateCertStatus: record missing id, skipping', r);
       return Promise.resolve();
     });
 

@@ -296,6 +296,10 @@ function selectTemplateFromGate(templateId) {
       if (result.config && !Canvas.isCreatingNew) {
         var config = result.config;
 
+        // ✅ สลับไป Designer ก่อน → เพื่อให้ Canvas.el init ก่อนโหลดภาพ
+        switchTab('designer');
+        if (typeof initCanvasIfNeeded === 'function') initCanvasIfNeeded();
+
         // ── Reset Canvas State (ล้างข้อมูลเก่าของ Template ก่อนหน้า) ──
         Canvas.bgImage = null;
         Canvas.selectedId = null;
@@ -325,9 +329,10 @@ function selectTemplateFromGate(templateId) {
           Canvas.el.height = Canvas.height;
         }
 
+        // ✅ โหลดภาพพื้นหลัง (ไม่ต้อง check Canvas.el เพราะ switchTab ทำแล้ว)
         if (config.drive_file_id) {
           Canvas.bgFileId = config.drive_file_id;
-          if (typeof loadBgImageFromDrive === 'function' && Canvas.el) {
+          if (typeof loadBgImageFromDrive === 'function') {
             loadBgImageFromDrive(config.drive_file_id);
           }
         } else {
@@ -335,7 +340,8 @@ function selectTemplateFromGate(templateId) {
           Canvas.bgFileId = '';
         }
 
-        if (typeof loadAllElementImages === 'function' && Canvas.el) {
+        // ✅ โหลดรูปภาพ element
+        if (typeof loadAllElementImages === 'function') {
           loadAllElementImages();
         }
 
@@ -410,9 +416,6 @@ function selectTemplateFromGate(templateId) {
         });
 
       showToast('เลือก Template สำเร็จ', 'success');
-
-      // ── 6. สลับไปหน้า Designer ทันที ──
-      switchTab('designer');
     })
     .catch(function(err) {
       hideLoading();
